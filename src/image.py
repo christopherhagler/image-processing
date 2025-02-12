@@ -138,7 +138,7 @@ def show_image(image: Image.Image, title: str = None) -> None:
         image.show(title=title)
 
 
-def image_blur(fft_image: np.ndarray, blur: float = 0.8):
+def image_blur(fft_image: np.ndarray, blur: float = 0.5):
     """
     Low pass filter an image object in the frequency domain. This creates a circular mask where any frequencies
     greater than the cutoff frequency are set to zero.
@@ -147,8 +147,7 @@ def image_blur(fft_image: np.ndarray, blur: float = 0.8):
     :return: a numpy array representation of an image that has been blurred (Low Pass Filtered)
     """
     m, n = fft_image.shape
-    omega_max = 0.5 * np.sqrt((m/2)**2 + (n/2)**2)
-    cutoff_frequency = omega_max * blur
+    omega_max = blur * np.sqrt((m/2)**2 + (n/2)**2)
 
     # build a mask to hold the low pass filter values
     low_pass = np.zeros((m, n), dtype=np.float32)
@@ -160,7 +159,7 @@ def image_blur(fft_image: np.ndarray, blur: float = 0.8):
     for i in range(m):
         for j in range(n):
             dist = np.sqrt((i - x) ** 2 + (j - y) ** 2)
-            if dist <= cutoff_frequency:
+            if dist <= omega_max:
                 low_pass[i, j] = 1.0
 
     filtered_image = np.fft.fftshift(fft_image) * low_pass
