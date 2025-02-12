@@ -147,7 +147,7 @@ def image_blur(fft_image: np.ndarray, blur: float = 0.8):
     :return: a numpy array representation of an image that has been blurred (Low Pass Filtered)
     """
     m, n = fft_image.shape
-    omega_max = 0.5 * min(m, n)
+    omega_max = 0.5 * np.sqrt((m/2)**2 + (n/2)**2)
     cutoff_frequency = omega_max * blur
 
     # build a mask to hold the low pass filter values
