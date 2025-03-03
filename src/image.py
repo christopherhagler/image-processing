@@ -147,7 +147,7 @@ def image_blur(fft_image: np.ndarray, blur: float = 0.5):
     :return: a numpy array representation of an image that has been blurred (Low Pass Filtered)
     """
     m, n = fft_image.shape
-    omega_max = blur * np.sqrt((m/2)**2 + (n/2)**2)
+    omega_max = blur * np.sqrt((m / 2) ** 2 + (n / 2) ** 2)
 
     # build a mask to hold the low pass filter values
     low_pass = np.zeros((m, n), dtype=np.float32)
@@ -164,3 +164,82 @@ def image_blur(fft_image: np.ndarray, blur: float = 0.5):
 
     filtered_image = np.fft.fftshift(fft_image) * low_pass
     return np.fft.ifftshift(filtered_image, axes=None)
+
+
+def zero_order_hold(
+        array: np.ndarray,
+        dimensions: tuple[int, int] = None
+) -> np.ndarray:
+    """
+    Magnify an image using the zero-order hold technique.
+    :param array: The original image(or section) to magnify.
+    :param dimensions: The dimensions of the new image.
+    :return: Numpy NDArray that contains the magnified image.
+    """
+    if not dimensions:
+        raise ValueError("In order to magnify an image, the magnification dimensions must be specified.")
+
+    m, n = array.shape
+    if m > dimensions[0] or n > dimensions[1]:
+        raise ValueError("The dimensions of the magnified image cannot be smaller than the original image.")
+
+    m_repeat = dimensions[0] // m
+    n_repeat = dimensions[1] // n
+    return np.repeat(
+        np.repeat(array, m_repeat, axis=0),
+        n_repeat,
+        axis=1
+    )
+
+
+def bilinear_interpolation(
+        array: np.ndarray,
+        dimensions: tuple[int, int] = None
+) -> np.ndarray:
+    if not dimensions:
+        raise ValueError("In order to magnify an image, the magnification dimensions must be specified.")
+
+    m, n = array.shape
+    if m > dimensions[0] or n > dimensions[1]:
+        raise ValueError("The dimensions of the magnified image cannot be smaller than the original image.")
+
+    row_spacing = dimensions[0] // m
+    column_spacing = dimensions[1] // n
+
+    # create the zero padded image
+    magnified_image = np.zeros(dimensions)
+    magnified_image[::row_spacing, ::column_spacing] = array
+
+    # Interpolate within the rows
+    for i in range(0, dimensions[0], row_spacing):
+        for j in range(0, dimensions[1], column_spacing):
+            a = magnified_image[i, j]
+            if j + column_spacing > dimensions[1] - 1:
+                b = a
+            else:
+                b = magnified_image[i, j + column_spacing]
+
+            for k in range(j, j + column_spacing):
+                # No need to try and interpolate outside the boundary of the magnified image
+                if k > dimensions[1]:
+                    break
+
+                magnified_image[i, k] = ((1 - ((k - j) / column_spacing)) * a) + (((k - j) / column_spacing) * b)
+
+    # Interpolate within the columns
+    for i in range(0, dimensions[0], row_spacing):
+        for j in range(0, dimensions[1]):
+            a = magnified_image[i, j]
+            if i + row_spacing > dimensions[0] - 1:
+                b = a
+            else:
+                b = magnified_image[i + row_spacing, j]
+
+            for k in range(i, i + row_spacing):
+                # No need to try and interpolate outside the boundary of the magnified image
+                if k > dimensions[0]:
+                    break
+
+                magnified_image[k, j] = ((1 - ((k - i) / row_spacing)) * a) + (((k - i) / row_spacing) * b)
+
+    return magnified_image
