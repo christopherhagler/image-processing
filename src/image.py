@@ -180,6 +180,9 @@ def zero_order_hold(
         raise ValueError("In order to magnify an image, the magnification dimensions must be specified.")
 
     m, n = array.shape
+    if m == 0 or n == 0:
+        raise ValueError("Cannot magnify an image that is of zero length.")
+
     if m > dimensions[0] or n > dimensions[1]:
         raise ValueError("The dimensions of the magnified image cannot be smaller than the original image.")
 
@@ -200,6 +203,9 @@ def bilinear_interpolation(
         raise ValueError("In order to magnify an image, the magnification dimensions must be specified.")
 
     m, n = array.shape
+    if m == 0 or n == 0:
+        raise ValueError("Cannot magnify an image that is of zero length.")
+
     if m > dimensions[0] or n > dimensions[1]:
         raise ValueError("The dimensions of the magnified image cannot be smaller than the original image.")
 
@@ -219,7 +225,7 @@ def bilinear_interpolation(
             else:
                 b = magnified_image[i, j + column_spacing]
 
-            for k in range(j, j + column_spacing):
+            for k in range(j + 1, j + column_spacing):
                 # No need to try and interpolate outside the boundary of the magnified image
                 if k > dimensions[1]:
                     break
@@ -235,7 +241,7 @@ def bilinear_interpolation(
             else:
                 b = magnified_image[i + row_spacing, j]
 
-            for k in range(i, i + row_spacing):
+            for k in range(i + 1, i + row_spacing):
                 # No need to try and interpolate outside the boundary of the magnified image
                 if k > dimensions[0]:
                     break

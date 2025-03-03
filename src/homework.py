@@ -11,11 +11,17 @@ def part_0(image1: Image.Image, image2: Image.Image) -> None:
     image1_array = image_to_array(image1)
     image2_array = image_to_array(image2)
 
-    row_index = 100
-    column_index = 100
+    start_position1 = (0, 0)
+    start_position2 = (120, 120)
 
-    extracted_block1 = image1_array[row_index:row_index + 128, column_index:column_index + 128]
-    extracted_block2 = image2_array[row_index:row_index + 128, column_index:column_index + 128]
+    extracted_block1 = image1_array[
+                       start_position1[0]:start_position1[0] + 128,
+                       start_position1[1]:start_position1[1] + 128
+    ]
+    extracted_block2 = image2_array[
+                       start_position2[0]:start_position2[0] + 128,
+                       start_position2[1]:start_position2[1] + 128
+    ]
 
     show_image(
         array_to_image(
