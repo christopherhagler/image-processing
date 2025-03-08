@@ -249,3 +249,72 @@ def bilinear_interpolation(
                 magnified_image[k, j] = ((1 - ((k - i) / row_spacing)) * a) + (((k - i) / row_spacing) * b)
 
     return magnified_image
+
+
+def decimation(
+        array: np.ndarray,
+        factor: int = 2
+) -> np.ndarray:
+    """
+    Decimate an image by whatever factor is passed in. This method does not low pass filter the image first, so
+    there is a good chance of aliasing.
+    :param array:
+    :param factor:
+    :return:
+    """
+    m, n = array.shape
+
+    # Make the process easy for now
+    if m != n:
+        raise ValueError("Only NxN images are supported for decimation.")
+
+    img_sz = (m // factor, n // factor)
+    small_image = np.zeros(shape=img_sz)
+
+    small_image_row_index = 0
+    for i in range(0, m, factor):
+
+        small_img_column_index = 0
+        for j in range(0, n, factor):
+            pixel = array[i, j]
+
+            small_image[small_image_row_index, small_img_column_index] = pixel
+            small_img_column_index += 1
+
+        small_image_row_index += 1
+
+    return small_image
+
+
+def low_pass_decimate(
+        array: np.ndarray,
+        factor: int = 2
+) -> np.ndarray:
+    """
+        Decimate an image by whatever factor is passed in and low-pass filter the image first to prevent aliasing.
+        :param array:
+        :param factor:
+        :return:
+        """
+    m, n = array.shape
+
+    # Make the process easy for now
+    if m != n:
+        raise ValueError("Only NxN images are supported for decimation.")
+
+    img_sz = (m // factor, n // factor)
+    small_image = np.zeros(shape=img_sz)
+
+    small_image_row_index = 0
+    for i in range(0, m, factor):
+
+        small_img_column_index = 0
+        for j in range(0, n, factor):
+            pixel = array[i, j]
+
+            small_image[small_image_row_index, small_img_column_index] = pixel
+            small_img_column_index += 1
+
+        small_image_row_index += 1
+
+    return small_image
