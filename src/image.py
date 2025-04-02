@@ -286,7 +286,7 @@ def decimation(
     return small_image
 
 
-def low_pass_decimate(
+def low_pass_decimation(
         array: np.ndarray,
         factor: int = 2
 ) -> np.ndarray:
@@ -298,23 +298,87 @@ def low_pass_decimate(
         """
     m, n = array.shape
 
+    fft_image = np.fft.fft2(array)
+
     # Make the process easy for now
     if m != n:
         raise ValueError("Only NxN images are supported for decimation.")
 
-    img_sz = (m // factor, n // factor)
-    small_image = np.zeros(shape=img_sz)
+    decimated_m = m // factor
+    decimated_n = n // factor
 
-    small_image_row_index = 0
-    for i in range(0, m, factor):
+    corner_size_m = decimated_m // 2
+    corner_size_n = decimated_n // 2
 
-        small_img_column_index = 0
-        for j in range(0, n, factor):
-            pixel = array[i, j]
+    real_part = np.zeros(shape=(decimated_m, decimated_n))
+    complex_part = np.zeros(shape=(decimated_m, decimated_n), dtype=np.complex64)
+    decimated_low_pass_image = np.zeros(shape=(decimated_m, decimated_n), dtype=np.complex64)
 
-            small_image[small_image_row_index, small_img_column_index] = pixel
-            small_img_column_index += 1
+    # I assume you want these two arrays to inspect? I am not entirely sure why we need
+    # two arrays to hold the real part and the imaginary part if we need to combine them
+    # to perform the inverse fft.
+    real_part[0:corner_size_m, 0:corner_size_n] = fft_image.real[0:corner_size_m, 0:corner_size_n]
+    real_part[0:corner_size_m, corner_size_n:decimated_n] = fft_image.real[0:corner_size_m, n - corner_size_n:n]
+    real_part[corner_size_m:decimated_m, 0:corner_size_n] = fft_image.real[m - corner_size_m:m, 0:corner_size_n]
+    real_part[corner_size_m:decimated_m, corner_size_n:decimated_n] = \
+        fft_image.real[m - corner_size_m:m, n - corner_size_n:n]
 
-        small_image_row_index += 1
+    complex_part[0:corner_size_m, 0:corner_size_n] = fft_image.imag[0:corner_size_m, 0:corner_size_n]
+    complex_part[0:corner_size_m, corner_size_n:decimated_n] = fft_image.imag[0:corner_size_m, n - corner_size_n:n]
+    complex_part[corner_size_m:decimated_m, 0:corner_size_n] = fft_image.imag[m - corner_size_m:m, 0:corner_size_n]
+    complex_part[corner_size_m:decimated_m, corner_size_n:decimated_n] = \
+        fft_image.imag[m - corner_size_m:m:m, n - corner_size_n:n]
 
-    return small_image
+    decimated_low_pass_image[0:corner_size_m, 0:corner_size_n] = fft_image[0:corner_size_m, 0:corner_size_n]
+    decimated_low_pass_image[0:corner_size_m, corner_size_n:decimated_n] = \
+        fft_image[0:corner_size_m, n - corner_size_n:n]
+    decimated_low_pass_image[corner_size_m:decimated_m, 0:corner_size_n] = \
+        fft_image[m - corner_size_m:m, 0:corner_size_n]
+    decimated_low_pass_image[corner_size_m:decimated_m, corner_size_n:decimated_n] = \
+        fft_image[m - corner_size_m:m, n - corner_size_n:n]
+
+    return ifft2_image(decimated_low_pass_image) / (factor ** 2)
+
+
+# This method is here to satisfy the homework requirement. Will improve in the future.
+def difference_image(
+        image1: np.ndarray,
+        image2: np.ndarray,
+) -> np.ndarray:
+    diff_image = image1.astype(np.int16) - image2.astype(np.int16)
+
+    # just use a simple double for-loop for now.
+    m, n = image1.shape
+    p, q = image2.shape
+
+    image_min = diff_image.min()
+    image_max = diff_image.max()
+
+    if m != p and n != q:
+        raise ValueError("In order to calculate the difference image, the two images must be the same size.")
+
+    for i in range(m):
+        for j in range(n):
+            if diff_image[i, j] == 0:
+                diff_image[i, j] = 128
+            elif diff_image[i, j] <= 0:
+                diff_image[i, j] = 128 * ((diff_image[i, j] - image_min) / (-image_min))
+            else:
+                diff_image[i, j] = 127 * (diff_image[i, j] / image_max) + 128
+
+    return diff_image
+
+
+def mean_squared_error(
+        image1: np.ndarray,
+        image2: np.ndarray
+) -> float:
+    # skip checks -- just get it done for now
+    mse: float = 0
+
+    m, n = image1.shape
+    for i in range(m):
+        for j in range(n):
+            mse += (image1[i, j] - image2[i, j]) ** 2
+
+    return mse / (m * n)
