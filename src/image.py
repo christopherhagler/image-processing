@@ -1,7 +1,9 @@
 import logging
+import math
 
 from PIL import Image
 import numpy as np
+import cv2
 
 logger = logging.getLogger(__name__)
 
@@ -19,6 +21,17 @@ def load_image(path: str) -> Image.Image:
     except Exception as e:
         logger.exception(e)
         raise e
+
+
+def load_raw_image(path: str) -> Image.Image:
+    # Read the raw file
+    with open(path, 'rb') as f:
+        image = np.fromfile(f, dtype=np.uint8)
+
+    # Reshape to 512x512 and normalize
+    image = image.reshape((512, 512))
+    image = image.astype(np.float32) / 255.0  # Normalize to [0, 1]
+    return Image.fromarray((image * 255).astype(np.uint8))
 
 
 def image_to_array(image: Image.Image) -> np.ndarray:
@@ -122,7 +135,8 @@ def array_to_image(array: np.ndarray) -> Image.Image:
     mag_min = array.min()
     mag_max = array.max()
 
-    magnitude_spectrum_normalized = (array - mag_min) / (mag_max - mag_min)
+    eps = 1e-8
+    magnitude_spectrum_normalized = (array - mag_min) / (mag_max - mag_min + eps)
     magnitude_spectrum_normalized = (magnitude_spectrum_normalized * 255).astype(np.uint8)
 
     return Image.fromarray(magnitude_spectrum_normalized)
@@ -193,6 +207,39 @@ def zero_order_hold(
         n_repeat,
         axis=1
     )
+
+
+def gaussian_blur(image: Image, size: tuple[int, int] = (5, 5), sigma_x=0.5):
+    return cv2.GaussianBlur(image, size, sigma_x)
+
+
+def laplacian_of_gaussian(image: Image, size: tuple[int, int] = (5, 5), sigma_x=0.5):
+    gaussian_blurred = gaussian_blur(image, size, sigma_x)
+    return cv2.Laplacian(gaussian_blurred, ddepth=cv2.CV_64F)
+
+
+def inverse_gamma_correction(image: np.ndarray, gamma: float = 2.5) -> np.ndarray:
+    return (image / 255) ** gamma * 255
+
+
+def calculate_histogram(image: np.ndarray, bins: int = 2) -> np.ndarray:
+    image_max = image.max()
+    width = (image_max + 1) / bins
+
+    histogram = np.zeros(shape=(1, bins))
+    for intensity in image.flatten():
+        index = min(int(intensity / width), bins - 1)
+        histogram[index] += 1
+
+    return histogram
+
+
+def equalize_histogram(image: np.ndarray, bins: int = 2) -> np.ndarray:
+    cdf = calculate_histogram(image, bins).cumsum()
+    cdf_normalized = cdf / cdf[-1]
+    transform = np.floor(255 * cdf_normalized).astype(np.uint8)
+    equalized_flat = transform[image.flatten()]
+    return equalized_flat.reshape(image.shape)
 
 
 def bilinear_interpolation(
@@ -382,3 +429,27 @@ def mean_squared_error(
             mse += (image1[i, j] - image2[i, j]) ** 2
 
     return mse / (m * n)
+
+
+def add_gaussian_noise(image, mean=0, var=50):
+    sigma = var ** 0.5
+    gaussian = np.random.normal(mean, sigma, image.shape)
+    noisy_img = image + gaussian
+    return np.clip(noisy_img, 0, 255)
+
+
+def add_salt_pepper_noise(image, amount=0.05, salt_vs_pepper=0.5):
+    noisy_img = np.copy(image)
+    num_pixels = image.size
+    num_salt = int(amount * num_pixels * salt_vs_pepper)
+    num_pepper = int(amount * num_pixels * (1 - salt_vs_pepper))
+
+    # Salt noise
+    coords = [np.random.randint(0, i, num_salt) for i in image.shape]
+    noisy_img[tuple(coords)] = 255
+
+    # Pepper noise
+    coords = [np.random.randint(0, i, num_pepper) for i in image.shape]
+    noisy_img[tuple(coords)] = 0
+
+    return noisy_img
