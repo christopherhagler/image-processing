@@ -209,13 +209,26 @@ def zero_order_hold(
     )
 
 
-def gaussian_blur(image: Image, size: tuple[int, int] = (5, 5), sigma_x=0.5):
-    return cv2.GaussianBlur(image, size, sigma_x)
+# Found Gaussian functions online since I do not have the Matlab source code for those functions
+# listed in the assignment.
+def gaussian_blur(image: np.ndarray, size: tuple[int, int] = (5, 5), sigma: float = 0.5):
+    kx = cv2.getGaussianKernel(ksize=size[0], sigma=sigma)
+    ky = cv2.getGaussianKernel(ksize=size[1], sigma=sigma)
+    h_log = kx @ ky.T
+    blurred = cv2.filter2D(src=image, ddepth=-1, kernel=h_log)
+
+    return blurred
 
 
-def laplacian_of_gaussian(image: Image, size: tuple[int, int] = (5, 5), sigma_x=0.5):
-    gaussian_blurred = gaussian_blur(image, size, sigma_x)
-    return cv2.Laplacian(gaussian_blurred, ddepth=cv2.CV_64F)
+def create_log_gaussian_blur(size: int, sigma: float) -> np.ndarray:
+    ax = np.linspace(-(size // 2), size // 2, size)
+    xx, yy = np.meshgrid(ax, ax)
+    norm = (xx ** 2 + yy ** 2)
+
+    factor = (norm - 2 * sigma ** 2) / (sigma ** 4)
+    gaussian = np.exp(-norm / (2 * sigma ** 2))
+    log = factor * gaussian
+    return log - log.mean()
 
 
 def inverse_gamma_correction(image: np.ndarray, gamma: float = 2.5) -> np.ndarray:
@@ -226,7 +239,7 @@ def calculate_histogram(image: np.ndarray, bins: int = 2) -> np.ndarray:
     image_max = image.max()
     width = (image_max + 1) / bins
 
-    histogram = np.zeros(shape=(1, bins))
+    histogram = np.zeros(bins)
     for intensity in image.flatten():
         index = min(int(intensity / width), bins - 1)
         histogram[index] += 1
@@ -234,7 +247,7 @@ def calculate_histogram(image: np.ndarray, bins: int = 2) -> np.ndarray:
     return histogram
 
 
-def equalize_histogram(image: np.ndarray, bins: int = 2) -> np.ndarray:
+def normalized_histogram(image: np.ndarray, bins: int = 2) -> np.ndarray:
     cdf = calculate_histogram(image, bins).cumsum()
     cdf_normalized = cdf / cdf[-1]
     transform = np.floor(255 * cdf_normalized).astype(np.uint8)
@@ -357,24 +370,7 @@ def low_pass_decimation(
     corner_size_m = decimated_m // 2
     corner_size_n = decimated_n // 2
 
-    real_part = np.zeros(shape=(decimated_m, decimated_n))
-    complex_part = np.zeros(shape=(decimated_m, decimated_n), dtype=np.complex64)
     decimated_low_pass_image = np.zeros(shape=(decimated_m, decimated_n), dtype=np.complex64)
-
-    # I assume you want these two arrays to inspect? I am not entirely sure why we need
-    # two arrays to hold the real part and the imaginary part if we need to combine them
-    # to perform the inverse fft.
-    real_part[0:corner_size_m, 0:corner_size_n] = fft_image.real[0:corner_size_m, 0:corner_size_n]
-    real_part[0:corner_size_m, corner_size_n:decimated_n] = fft_image.real[0:corner_size_m, n - corner_size_n:n]
-    real_part[corner_size_m:decimated_m, 0:corner_size_n] = fft_image.real[m - corner_size_m:m, 0:corner_size_n]
-    real_part[corner_size_m:decimated_m, corner_size_n:decimated_n] = \
-        fft_image.real[m - corner_size_m:m, n - corner_size_n:n]
-
-    complex_part[0:corner_size_m, 0:corner_size_n] = fft_image.imag[0:corner_size_m, 0:corner_size_n]
-    complex_part[0:corner_size_m, corner_size_n:decimated_n] = fft_image.imag[0:corner_size_m, n - corner_size_n:n]
-    complex_part[corner_size_m:decimated_m, 0:corner_size_n] = fft_image.imag[m - corner_size_m:m, 0:corner_size_n]
-    complex_part[corner_size_m:decimated_m, corner_size_n:decimated_n] = \
-        fft_image.imag[m - corner_size_m:m:m, n - corner_size_n:n]
 
     decimated_low_pass_image[0:corner_size_m, 0:corner_size_n] = fft_image[0:corner_size_m, 0:corner_size_n]
     decimated_low_pass_image[0:corner_size_m, corner_size_n:decimated_n] = \
@@ -431,14 +427,14 @@ def mean_squared_error(
     return mse / (m * n)
 
 
-def add_gaussian_noise(image, mean=0, var=50):
+def gaussian_noise(image, mean=0, var=50):
     sigma = var ** 0.5
     gaussian = np.random.normal(mean, sigma, image.shape)
     noisy_img = image + gaussian
     return np.clip(noisy_img, 0, 255)
 
 
-def add_salt_pepper_noise(image, amount=0.05, salt_vs_pepper=0.5):
+def salt_pepper_noise(image, amount=0.05, salt_vs_pepper=0.5):
     noisy_img = np.copy(image)
     num_pixels = image.size
     num_salt = int(amount * num_pixels * salt_vs_pepper)
@@ -453,3 +449,12 @@ def add_salt_pepper_noise(image, amount=0.05, salt_vs_pepper=0.5):
     noisy_img[tuple(coords)] = 0
 
     return noisy_img
+
+
+def median_filter(image: np.ndarray, size: int = 3, n_times: int = 0) -> np.ndarray:
+    filtered_image = cv2.medianBlur(src=image, ksize=size)
+    if n_times > 0:
+        for i in range(n_times):
+            filtered_image = cv2.medianBlur(src=image, ksize=size)
+
+    return filtered_image
