@@ -1,7 +1,7 @@
 import logging
-import math
 
 from PIL import Image
+from scipy.ndimage import median_filter as scipy_median_filter
 import numpy as np
 import cv2
 
@@ -452,7 +452,7 @@ def salt_pepper_noise(image, amount=0.05, salt_vs_pepper=0.5):
 
 
 def median_filter(image: np.ndarray, size: int = 3, n_times: int = 0) -> np.ndarray:
-    filtered_image = cv2.medianBlur(src=image, ksize=size)
+    filtered_image = scipy_median_filter(image, size=size)
     if n_times > 0:
         for i in range(n_times):
             filtered_image = cv2.medianBlur(src=image, ksize=size)

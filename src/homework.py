@@ -8,7 +8,7 @@ from PIL import Image
 logger = logging.getLogger(__name__)
 
 
-def pre_gamma_correct(image1: Image.Image) -> None:
+def part_1(image1: Image.Image) -> None:
     save_image(
         path=os.path.dirname(os.path.abspath(__file__)) + "/resources/images/generated/",
         name="lena_gamma.png",
@@ -16,7 +16,7 @@ def pre_gamma_correct(image1: Image.Image) -> None:
     )
 
 
-def histograms(image1: Image.Image) -> None:
+def part_2_and_3(image1: Image.Image) -> None:
     bin_values = [2, 128, 256]
 
     gamma_path = str(os.path.join(
@@ -50,10 +50,11 @@ def histograms(image1: Image.Image) -> None:
     )
 
 
-def noisy_images(image1: Image.Image) -> None:
+def part_4_and_5(image1: Image.Image) -> None:
     gaussian = gaussian_noise(image_to_array(image=image1))
     salt_and_pepper = salt_pepper_noise(image_to_array(image=image1))
 
+    # Noisy Images
     save_image(
         path=os.path.dirname(os.path.abspath(__file__)) + "/resources/images/generated/",
         name="lena_g.png",
@@ -66,6 +67,21 @@ def noisy_images(image1: Image.Image) -> None:
         image=array_to_image(salt_and_pepper)
     )
 
+    for lobe_sz in [0.25, 0.5, 1.0]:
+        # Linear Filter
+        save_image(
+            path=os.path.dirname(os.path.abspath(__file__)) + "/resources/images/generated/",
+            name="lena_g_smoothed.png",
+            image=array_to_image(gaussian_blur(gaussian, sigma=lobe_sz))
+        )
+
+        save_image(
+            path=os.path.dirname(os.path.abspath(__file__)) + "/resources/images/generated/",
+            name="lena_s_smoothed.png",
+            image=array_to_image(gaussian_blur(salt_and_pepper, sigma=lobe_sz))
+        )
+
+    # Median Filter
     save_image(
         path=os.path.dirname(os.path.abspath(__file__)) + "/resources/images/generated/",
         name="lena_s_median_1.png",
@@ -101,6 +117,6 @@ def run_homework_steps():
     lena_raw = load_raw_image(image1_path)
     lena_png = load_image(image2_path)
 
-    pre_gamma_correct(lena_png)
-    histograms(lena_png)
-    noisy_images(lena_raw)
+    part_1(lena_png)
+    part_2_and_3(lena_png)
+    part_4_and_5(lena_raw)
