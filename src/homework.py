@@ -68,18 +68,31 @@ def part_4_and_5(image1: Image.Image) -> None:
     )
 
     for lobe_sz in [0.25, 0.5, 1.0]:
-        # Linear Filter
-        save_image(
-            path=os.path.dirname(os.path.abspath(__file__)) + "/resources/images/generated/",
-            name="lena_g_smoothed.png",
-            image=array_to_image(gaussian_blur(gaussian, sigma=lobe_sz))
-        )
+        for filter_sz in [5, 10]:
+            # Linear Filter
+            save_image(
+                path=os.path.dirname(os.path.abspath(__file__)) + "/resources/images/generated/",
+                name=f"lena_g_smoothed_{lobe_sz}_lobe_filter_{filter_sz}.png",
+                image=array_to_image(gaussian_blur(gaussian, size=filter_sz, sigma=lobe_sz))
+            )
 
-        save_image(
-            path=os.path.dirname(os.path.abspath(__file__)) + "/resources/images/generated/",
-            name="lena_s_smoothed.png",
-            image=array_to_image(gaussian_blur(salt_and_pepper, sigma=lobe_sz))
-        )
+            save_image(
+                path=os.path.dirname(os.path.abspath(__file__)) + "/resources/images/generated/",
+                name=f"lena_s_smoothed_{lobe_sz}_lobe_filter_{filter_sz}.png",
+                image=array_to_image(gaussian_blur(salt_and_pepper, size=filter_sz, sigma=lobe_sz))
+            )
+
+            save_image(
+                path=os.path.dirname(os.path.abspath(__file__)) + "/resources/images/generated/",
+                name=f"lena_g_logged_{lobe_sz}_lobe_filter_{filter_sz}.png",
+                image=array_to_image(log_filter(gaussian, size=filter_sz, sigma=lobe_sz))
+            )
+
+            save_image(
+                path=os.path.dirname(os.path.abspath(__file__)) + "/resources/images/generated/",
+                name=f"lena_s_logged_{lobe_sz}_lobe_filter_{filter_sz}.png",
+                image=array_to_image(log_filter(salt_and_pepper, size=filter_sz, sigma=lobe_sz))
+            )
 
     # Median Filter
     save_image(

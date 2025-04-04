@@ -209,11 +209,10 @@ def zero_order_hold(
     )
 
 
-# Found Gaussian functions online since I do not have the Matlab source code for those functions
-# listed in the assignment.
-def gaussian_blur(image: np.ndarray, size: tuple[int, int] = (5, 5), sigma: float = 0.5):
-    kx = cv2.getGaussianKernel(ksize=size[0], sigma=sigma)
-    ky = cv2.getGaussianKernel(ksize=size[1], sigma=sigma)
+# Found Gaussian functions and log_filter online since I do not have the Matlab source code for those functions.
+def gaussian_blur(image: np.ndarray, size: int = 5, sigma: float = 0.5):
+    kx = cv2.getGaussianKernel(ksize=size, sigma=sigma)
+    ky = cv2.getGaussianKernel(ksize=size, sigma=sigma)
     h_log = kx @ ky.T
     blurred = cv2.filter2D(src=image, ddepth=-1, kernel=h_log)
 
@@ -229,6 +228,12 @@ def create_log_gaussian_blur(size: int, sigma: float) -> np.ndarray:
     gaussian = np.exp(-norm / (2 * sigma ** 2))
     log = factor * gaussian
     return log - log.mean()
+
+
+def log_filter(image: np.ndarray, size: int = 5, sigma: float = 0.5) -> np.ndarray:
+    log_kernel = create_log_gaussian_blur(size, sigma)
+    filtered = cv2.filter2D(src=image, ddepth=-1, kernel=log_kernel)
+    return filtered
 
 
 def inverse_gamma_correction(image: np.ndarray, gamma: float = 2.5) -> np.ndarray:
