@@ -446,12 +446,12 @@ def salt_pepper_noise(image, amount=0.05, salt_vs_pepper=0.5):
     num_pepper = int(amount * num_pixels * (1 - salt_vs_pepper))
 
     # Salt noise
-    coords = [np.random.randint(0, i, num_salt) for i in image.shape]
-    noisy_img[tuple(coords)] = 255
+    coordinates = [np.random.randint(0, i, num_salt) for i in image.shape]
+    noisy_img[tuple(coordinates)] = 255
 
     # Pepper noise
-    coords = [np.random.randint(0, i, num_pepper) for i in image.shape]
-    noisy_img[tuple(coords)] = 0
+    coordinates = [np.random.randint(0, i, num_pepper) for i in image.shape]
+    noisy_img[tuple(coordinates)] = 0
 
     return noisy_img
 
